@@ -20,6 +20,37 @@ Build the tool:
 $ GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o vanilla-jail
 ```
 
+## Network Setup
+
+Before using Vanilla Jail, you need to set up the network environment. Run the following commands as root:
+
+```sh
+# Create and configure the bridge interface
+ifconfig bridge create
+ifconfig bridge0 inet 192.168.2.1/24
+ifconfig bridge0 up
+
+# Enable PF (Packet Filter)
+cat << EOF >> /etc/rc.conf
+pf_enable="YES"
+pf_flags=""
+EOF
+
+# Configure NAT
+echo 'nat on vtnet0 from 192.168.2.0/24 to any -> (vtnet0)' > /etc/pf.conf
+echo 'pass all' >> /etc/pf.conf
+
+# Enable IP forwarding
+sysctl net.inet.ip.forwarding=1
+
+# Start the PF service
+service pf start
+```
+
+Note: Replace `vtnet0` with your actual network interface name if different.
+
+For more information on configuring PF, refer to the [FreeBSD Handbook section on Firewalls](https://docs.freebsd.org/en/books/handbook/firewalls/#_enabling_pf).
+
 ## Usage
 
 ### Initialize Vanilla Jail
