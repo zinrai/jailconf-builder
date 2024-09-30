@@ -4,6 +4,10 @@ Vanilla Jail is a CLI tool for managing FreeBSD jails using the standard [jail.c
 
 Back around 2013, when I was working with jail.conf(5) on FreeBSD 9.x, I wished there was an include option to improve usability. Recently, I revisited jail.conf(5) and discovered that the include option is indeed implemented. This discovery led to the development of this `vanilla-jail`, which uses the standard features of the jail system.
 
+## Note
+
+This is a CLI tool for creating jail environments using jail.conf(5). For jail operations, please use commands such as `jail -c <jail_name>` , `jail -r <jail_name>` , `jls` , and `jexec 1 /bin/tcsh`.
+
 ## Features
 
 - Initialize the Vanilla Jail environment
