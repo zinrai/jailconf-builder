@@ -137,6 +137,21 @@ func contains(s []int, e int) bool {
 	return false
 }
 
+func checkJailNameExists(name string) bool {
+	files, err := os.ReadDir(JailConfDir)
+	if err != nil {
+		return false
+	}
+
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), "-"+name+".conf") {
+			return true
+		}
+	}
+
+	return false
+}
+
 func createJail(cmd *cobra.Command, args []string) {
 	if err := checkInitialized(); err != nil {
 		fmt.Println(err)
@@ -148,6 +163,12 @@ func createJail(cmd *cobra.Command, args []string) {
 		return
 	}
 	jailName := args[0]
+
+	if checkJailNameExists(jailName) {
+		fmt.Printf("Error: Jail with name '%s' already exists\n", jailName)
+		return
+	}
+
 	version, _ := cmd.Flags().GetString("version")
 	ipAddr, _ := cmd.Flags().GetString("ip")
 	gateway, _ := cmd.Flags().GetString("gw")
