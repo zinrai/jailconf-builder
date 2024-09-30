@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -75,6 +76,7 @@ func init() {
 	createCmd.MarkFlagRequired("ip")
 	createCmd.MarkFlagRequired("gw")
 	dlBaseCmd.Flags().StringP("source", "s", "", "URL to base.txz")
+	deleteCmd.Flags().BoolP("force", "f", false, "Force delete without confirmation")
 }
 
 func checkInitialized() error {
@@ -259,33 +261,69 @@ func listJails(cmd *cobra.Command, args []string) {
 }
 
 func deleteJail(cmd *cobra.Command, args []string) {
-	if len(args) < 1 {
-		fmt.Println("Please specify the name of the jail to delete.")
+	if len(args) != 1 {
+		fmt.Println("Error: Please provide a jail name to delete")
 		return
 	}
 
 	jailName := args[0]
+	force, _ := cmd.Flags().GetBool("force")
+
+	// Find the jail configuration file
 	files, err := os.ReadDir(JailConfDir)
 	if err != nil {
 		fmt.Printf("Error reading jail configurations: %v\n", err)
 		return
 	}
 
+	var confFile string
+	var jailDir string
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), "-"+jailName+".conf") {
-			confPath := filepath.Join(JailConfDir, file.Name())
-			if err := os.Remove(confPath); err != nil {
-				fmt.Printf("Error deleting jail configuration: %v\n", err)
-				return
-			}
-			jailPath := filepath.Join(JailsDir, file.Name()[:len(file.Name())-5])
-			fmt.Printf("Jail '%s' configuration deleted successfully.\n", jailName)
-			fmt.Printf("To completely remove the jail, manually delete its directory: %s\n", jailPath)
+			confFile = file.Name()
+			jailDir = file.Name()[:len(file.Name())-5] // Remove .conf
+			break
+		}
+	}
+
+	if confFile == "" {
+		fmt.Printf("Error: Jail '%s' not found\n", jailName)
+		return
+	}
+
+	if !force {
+		fmt.Printf("Are you sure you want to delete jail '%s'? This action cannot be undone. [y/N]: ", jailName)
+		reader := bufio.NewReader(os.Stdin)
+		response, _ := reader.ReadString('\n')
+		response = strings.ToLower(strings.TrimSpace(response))
+		if response != "y" && response != "yes" {
+			fmt.Println("Jail deletion cancelled.")
 			return
 		}
 	}
 
-	fmt.Printf("Jail '%s' configuration not found.\n", jailName)
+	// Delete jail configuration file
+	confPath := filepath.Join(JailConfDir, confFile)
+	if err := os.Remove(confPath); err != nil {
+		fmt.Printf("Error deleting jail configuration file: %v\n", err)
+		return
+	}
+
+	// Remove flags from jail directory
+	jailPath := filepath.Join(JailsDir, jailDir)
+	chflagsCmd := exec.Command("chflags", "-R", "noschg,nouchg", jailPath)
+	if err := chflagsCmd.Run(); err != nil {
+		fmt.Printf("Error removing flags from jail directory: %v\n", err)
+		return
+	}
+
+	// Delete jail directory
+	if err := os.RemoveAll(jailPath); err != nil {
+		fmt.Printf("Error deleting jail directory: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Jail '%s' has been successfully deleted.\n", jailName)
 }
 
 func initVanillaJail(cmd *cobra.Command, args []string) {
