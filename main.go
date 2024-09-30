@@ -54,10 +54,10 @@ var deleteCmd = &cobra.Command{
 	Run:   deleteJail,
 }
 
-var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Setup main jail.conf if it doesn't exist",
-	Run:   setupMainConf,
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Initialize Vanilla Jail environment",
+	Run:   initVanillaJail,
 }
 
 var dlBaseCmd = &cobra.Command{
@@ -67,7 +67,7 @@ var dlBaseCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(createCmd, listCmd, deleteCmd, setupCmd, dlBaseCmd)
+	rootCmd.AddCommand(createCmd, listCmd, deleteCmd, initCmd, dlBaseCmd)
 	createCmd.Flags().StringP("version", "v", "", "FreeBSD version for the jail")
 	createCmd.Flags().StringP("ip", "i", "", "IP address for the jail")
 	createCmd.Flags().StringP("gw", "g", "", "Default gateway for the jail")
@@ -249,11 +249,29 @@ func deleteJail(cmd *cobra.Command, args []string) {
 	fmt.Printf("Jail '%s' configuration not found.\n", jailName)
 }
 
-func setupMainConf(cmd *cobra.Command, args []string) {
+func initVanillaJail(cmd *cobra.Command, args []string) {
+	if err := createMainJailConf(); err != nil {
+		fmt.Printf("Error creating main jail.conf: %v\n", err)
+		return
+	}
+
+	dirsToCreate := []string{VanillaJailRoot, BaseDir, JailConfDir, JailsDir}
+	for _, dir := range dirsToCreate {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Printf("Error creating directory %s: %v\n", dir, err)
+			return
+		}
+		fmt.Printf("Created directory: %s\n", dir)
+	}
+
+	fmt.Println("Vanilla Jail environment initialized successfully.")
+}
+
+func createMainJailConf() error {
 	mainConfPath := "/etc/jail.conf"
 	if _, err := os.Stat(mainConfPath); err == nil {
 		fmt.Println("jail.conf already exists. Skipping creation.")
-		return
+		return nil
 	}
 
 	mainConf := `
@@ -270,18 +288,18 @@ mount.devfs;
 devfs_ruleset  = 5;
 vnet;
 vnet.interface = "epair${if}b";
-path           = "/opt/vanilla-jail/jails/${name}";
+path           = "` + JailsDir + `/${name}";
 persist;
 
-.include "/opt/vanilla-jail/jail.conf.d/*";
+.include "` + JailConfDir + `/*";
 `
 
 	if err := os.WriteFile(mainConfPath, []byte(mainConf), 0644); err != nil {
-		fmt.Printf("Error creating main jail.conf: %v\n", err)
-		return
+		return fmt.Errorf("error creating main jail.conf: %v", err)
 	}
 
 	fmt.Println("Main jail.conf created successfully.")
+	return nil
 }
 
 func extractVersionFromURL(url string) (string, error) {
