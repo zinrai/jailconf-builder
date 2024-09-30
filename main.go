@@ -77,6 +77,16 @@ func init() {
 	dlBaseCmd.Flags().StringP("source", "s", "", "URL to base.txz")
 }
 
+func checkInitialized() error {
+	dirsToCheck := []string{VanillaJailRoot, BaseDir, JailConfDir, JailsDir}
+	for _, dir := range dirsToCheck {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			return fmt.Errorf("directory %s does not exist. Please run 'vanilla-jail init' first", dir)
+		}
+	}
+	return nil
+}
+
 func getNextAvailableNumber() (int, error) {
 	files, err := os.ReadDir(JailConfDir)
 	if err != nil {
@@ -128,6 +138,11 @@ func contains(s []int, e int) bool {
 }
 
 func createJail(cmd *cobra.Command, args []string) {
+	if err := checkInitialized(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	if len(args) != 1 {
 		fmt.Println("Error: Please provide a jail name")
 		return
@@ -317,6 +332,11 @@ func extractVersionFromURL(url string) (string, error) {
 }
 
 func downloadBase(cmd *cobra.Command, args []string) {
+	if err := checkInitialized(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	source, _ := cmd.Flags().GetString("source")
 
 	if source == "" {
