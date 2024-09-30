@@ -1,0 +1,46 @@
+name: Build FreeBSD Binary
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on any tag that starts with 'v'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.23'
+
+    - name: Build FreeBSD binary
+      env:
+        GOOS: freebsd
+        GOARCH: amd64
+        CGO_ENABLED: 0
+      run: |
+        go build -v -a -ldflags '-extldflags "-static"' -o vanilla-jail-freebsd-amd64
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./vanilla-jail-freebsd-amd64
+        asset_name: vanilla-jail-freebsd-amd64
+        asset_content_type: application/octet-stream
