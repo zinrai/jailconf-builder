@@ -185,7 +185,8 @@ func createJailEnvironment(jail Jail) error {
 		return fmt.Errorf("base.txz for version %s not found. Please run 'vanilla-jail dl-base' first", jail.Version)
 	}
 
-	jailPath := filepath.Join(JailsDir, jail.Name)
+	jailDirName := fmt.Sprintf("%d-%s", jail.If, jail.Name)
+	jailPath := filepath.Join(JailsDir, jailDirName)
 	if err := os.MkdirAll(jailPath, 0755); err != nil {
 		return err
 	}
@@ -231,7 +232,7 @@ func listJails(cmd *cobra.Command, args []string) {
 		parts := strings.SplitN(file.Name(), "-", 2)
 		if len(parts) == 2 {
 			jailName := strings.TrimSuffix(parts[1], ".conf")
-			fmt.Printf("- %s (interface: epair%s)\n", jailName, parts[0])
+			fmt.Printf("- %s (interface: epair%s, path: %s)\n", jailName, parts[0], filepath.Join(JailsDir, file.Name()[:len(file.Name())-5]))
 		}
 	}
 }
@@ -256,7 +257,9 @@ func deleteJail(cmd *cobra.Command, args []string) {
 				fmt.Printf("Error deleting jail configuration: %v\n", err)
 				return
 			}
-			fmt.Printf("Jail '%s' configuration deleted successfully. Jail filesystem not removed.\n", jailName)
+			jailPath := filepath.Join(JailsDir, file.Name()[:len(file.Name())-5])
+			fmt.Printf("Jail '%s' configuration deleted successfully.\n", jailName)
+			fmt.Printf("To completely remove the jail, manually delete its directory: %s\n", jailPath)
 			return
 		}
 	}
@@ -303,7 +306,7 @@ mount.devfs;
 devfs_ruleset  = 5;
 vnet;
 vnet.interface = "epair${if}b";
-path           = "` + JailsDir + `/${name}";
+path           = "` + JailsDir + `/${if}-${name}";
 persist;
 
 .include "` + JailConfDir + `/*";
