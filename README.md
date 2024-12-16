@@ -11,7 +11,7 @@ This is a CLI tool for creating jail environments using jail.conf(5). For jail o
 ## Features
 
 - Initialize `jailconf-builder` environment
-- Create new jails
+- Create new jails with VNET support
 - List existing jails
 - Delete jails with safety checks
 - Download FreeBSD base system for jails
@@ -28,27 +28,40 @@ $ GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -a -ldflags '-extldflags "-st
 
 Before using `jailconf-builder` , you need to set up the network environment. Run the following commands as root:
 
-```sh
-# Create and configure the bridge interface
-ifconfig bridge create
-ifconfig bridge0 inet 192.168.2.1/24
-ifconfig bridge0 up
+Create and configure the bridge interface:
 
-# Enable PF (Packet Filter)
-cat << EOF >> /etc/rc.conf
+```sh
+# ifconfig bridge create
+# ifconfig bridge0 inet 192.168.2.1/24
+# ifconfig bridge0 up
+```
+
+Enable PF (Packet Filter):
+
+```sh
+# cat << EOF >> /etc/rc.conf
 pf_enable="YES"
 pf_flags=""
 EOF
+```
 
-# Configure NAT
-echo 'nat on vtnet0 from 192.168.2.0/24 to any -> (vtnet0)' > /etc/pf.conf
-echo 'pass all' >> /etc/pf.conf
+Configure NAT:
 
-# Enable IP forwarding
-sysctl net.inet.ip.forwarding=1
+```sh
+# echo 'nat on vtnet0 from 192.168.2.0/24 to any -> (vtnet0)' > /etc/pf.conf
+# echo 'pass all' >> /etc/pf.conf
+```
 
-# Start the PF service
-service pf start
+Enable IP forwarding:
+
+```sh
+# sysctl net.inet.ip.forwarding=1
+```
+
+Start the PF service:
+
+```sh
+# service pf start
 ```
 
 Note: Replace `vtnet0` with your actual network interface name if different.
