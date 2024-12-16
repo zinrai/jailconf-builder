@@ -25,7 +25,7 @@ jobs:
         GOARCH: amd64
         CGO_ENABLED: 0
       run: |
-        go build -v -a -ldflags '-extldflags "-static"' -o vanilla-jail-freebsd-amd64
+        go build -v -a -ldflags '-extldflags "-static"' -o jailconf-builder-freebsd-amd64
 
     - name: Create Release
       id: create_release
@@ -44,6 +44,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./vanilla-jail-freebsd-amd64
-        asset_name: vanilla-jail-freebsd-amd64
+        asset_path: ./jailconf-builder-freebsd-amd64
+        asset_name: jailconf-builder-freebsd-amd64
         asset_content_type: application/octet-stream

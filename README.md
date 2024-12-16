@@ -1,8 +1,8 @@
-# Vanilla Jail
+# jailconf-builder
 
-Vanilla Jail is a CLI tool for managing FreeBSD jails using the standard [jail.conf(5)](https://man.freebsd.org/cgi/man.cgi?jail.conf(5)) configuration.
+`jailconf-builder` is a CLI tool for managing FreeBSD jails using the standard [jail.conf(5)](https://man.freebsd.org/cgi/man.cgi?jail.conf(5)) configuration.
 
-Back around 2013, when I was working with jail.conf(5) on FreeBSD 9.x, I wished there was an include option to improve usability. Recently, I revisited jail.conf(5) and discovered that the include option is indeed implemented. This discovery led to the development of this `vanilla-jail`, which uses the standard features of the jail system.
+Back around 2013, when I was working with jail.conf(5) on FreeBSD 9.x, I wished there was an include option to improve usability. Recently, I revisited jail.conf(5) and discovered that the include option is indeed implemented. This discovery led to the development of this `jailconf-builder`, which uses the standard features of the jail system.
 
 ## Note
 
@@ -10,7 +10,7 @@ This is a CLI tool for creating jail environments using jail.conf(5). For jail o
 
 ## Features
 
-- Initialize the Vanilla Jail environment
+- Initialize `jailconf-builder` environment
 - Create new jails
 - List existing jails
 - Delete jails with safety checks
@@ -21,12 +21,12 @@ This is a CLI tool for creating jail environments using jail.conf(5). For jail o
 Build the tool:
 
 ```
-$ GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o vanilla-jail
+$ GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o jailconf-builder
 ```
 
 ## Network Setup
 
-Before using Vanilla Jail, you need to set up the network environment. Run the following commands as root:
+Before using `jailconf-builder` , you need to set up the network environment. Run the following commands as root:
 
 ```sh
 # Create and configure the bridge interface
@@ -57,12 +57,12 @@ For more information on configuring PF, refer to the [FreeBSD Handbook section o
 
 ## Usage
 
-### Initialize Vanilla Jail
+### Initialize
 
-Before using Vanilla Jail, you need to initialize the environment:
+Before using `jailconf-builder` , you need to initialize the environment:
 
 ```
-$ sudo vanilla-jail init
+$ sudo jailconf-builder init
 ```
 
 This command creates the necessary directories and the main jail.conf file.
@@ -72,12 +72,12 @@ This command creates the necessary directories and the main jail.conf file.
 To create a new jail:
 
 ```
-$ sudo vanilla-jail create <jail_name> -v <FreeBSD_version> -i <IP_address> -g <gateway>
+$ sudo jailconf-builder create <jail_name> -v <FreeBSD_version> -i <IP_address> -g <gateway>
 ```
 
 Example:
 ```
-$ sudo vanilla-jail create myjail -v 14.1-RELEASE -i 192.168.2.100 -g 192.168.2.1
+$ sudo jailconf-builder create myjail -v 14.1-RELEASE -i 192.168.2.100 -g 192.168.2.1
 ```
 
 ### List Jails
@@ -85,7 +85,7 @@ $ sudo vanilla-jail create myjail -v 14.1-RELEASE -i 192.168.2.100 -g 192.168.2.
 To list all existing jails:
 
 ```
-$ vanilla-jail list
+$ jailconf-builder list
 ```
 
 ### Delete a Jail
@@ -93,13 +93,13 @@ $ vanilla-jail list
 To delete a jail:
 
 ```
-$ sudo vanilla-jail delete <jail_name>
+$ sudo jailconf-builder delete <jail_name>
 ```
 
 This will prompt for confirmation. To skip the confirmation, use the `-f` flag:
 
 ```
-$ sudo vanilla-jail delete -f <jail_name>
+$ sudo jailconf-builder delete -f <jail_name>
 ```
 
 ### Download FreeBSD Base System
@@ -107,12 +107,12 @@ $ sudo vanilla-jail delete -f <jail_name>
 To download the FreeBSD base system for a specific version:
 
 ```
-$ sudo vanilla-jail dl-base -s <URL_to_base.txz>
+$ sudo jailconf-builder dl-base -s <URL_to_base.txz>
 ```
 
 Example:
 ```
-$ sudo vanilla-jail dl-base -s https://download.freebsd.org/ftp/releases/amd64/14.1-RELEASE/base.txz
+$ sudo jailconf-builder dl-base -s https://download.freebsd.org/ftp/releases/amd64/14.1-RELEASE/base.txz
 ```
 
 ## License

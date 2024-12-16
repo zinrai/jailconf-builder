@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	VanillaJailRoot = "/opt/vanilla-jail"
-	BaseDir         = VanillaJailRoot + "/base"
-	JailConfDir     = VanillaJailRoot + "/jail.conf.d"
-	JailsDir        = VanillaJailRoot + "/jails"
+	JailconfBuilderRoot = "/opt/jailconf-builder"
+	BaseDir             = JailconfBuilderRoot + "/base"
+	JailConfDir         = JailconfBuilderRoot + "/jail.conf.d"
+	JailsDir            = JailconfBuilderRoot + "/jails"
 )
 
 type Jail struct {
@@ -32,7 +32,7 @@ type Jail struct {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "vanilla-jail",
+	Use:   "jailconf-builder",
 	Short: "Vanilla Jail - FreeBSD Standard Jail Manager",
 	Long:  `A CLI tool to manage FreeBSD jails using the standard jail.conf.`,
 }
@@ -80,10 +80,10 @@ func init() {
 }
 
 func checkInitialized() error {
-	dirsToCheck := []string{VanillaJailRoot, BaseDir, JailConfDir, JailsDir}
+	dirsToCheck := []string{JailconfBuilderRoot, BaseDir, JailConfDir, JailsDir}
 	for _, dir := range dirsToCheck {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			return fmt.Errorf("directory %s does not exist. Please run 'vanilla-jail init' first", dir)
+			return fmt.Errorf("directory %s does not exist. Please run 'jailconf-builder init' first", dir)
 		}
 	}
 	return nil
@@ -205,7 +205,7 @@ func createJail(cmd *cobra.Command, args []string) {
 func createJailEnvironment(jail Jail) error {
 	baseFile := filepath.Join(BaseDir, jail.Version, "base.txz")
 	if _, err := os.Stat(baseFile); os.IsNotExist(err) {
-		return fmt.Errorf("base.txz for version %s not found. Please run 'vanilla-jail dl-base' first", jail.Version)
+		return fmt.Errorf("base.txz for version %s not found. Please run 'jailconf-builder dl-base' first", jail.Version)
 	}
 
 	jailDirName := fmt.Sprintf("%d-%s", jail.If, jail.Name)
@@ -332,7 +332,7 @@ func initVanillaJail(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	dirsToCreate := []string{VanillaJailRoot, BaseDir, JailConfDir, JailsDir}
+	dirsToCreate := []string{JailconfBuilderRoot, BaseDir, JailConfDir, JailsDir}
 	for _, dir := range dirsToCreate {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			fmt.Printf("Error creating directory %s: %v\n", dir, err)

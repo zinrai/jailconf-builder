@@ -1,4 +1,4 @@
-module github.com/zinrai/vanilla-jail
+module github.com/zinrai/jailconf-builder
 
 go 1.23.1
 
