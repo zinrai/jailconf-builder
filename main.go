@@ -33,7 +33,7 @@ type Jail struct {
 
 var rootCmd = &cobra.Command{
 	Use:   "jailconf-builder",
-	Short: "Vanilla Jail - FreeBSD Standard Jail Manager",
+	Short: "jailconf-builder - FreeBSD Standard Jail Manager",
 	Long:  `A CLI tool to manage FreeBSD jails using the standard jail.conf.`,
 }
 
@@ -57,7 +57,7 @@ var deleteCmd = &cobra.Command{
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize Vanilla Jail environment",
+	Short: "Initialize jailconf-builder environment",
 	Run:   initVanillaJail,
 }
 
@@ -341,7 +341,7 @@ func initVanillaJail(cmd *cobra.Command, args []string) {
 		fmt.Printf("Created directory: %s\n", dir)
 	}
 
-	fmt.Println("Vanilla Jail environment initialized successfully.")
+	fmt.Println("jailconf-builder environment initialized successfully.")
 }
 
 func createMainJailConf() error {
