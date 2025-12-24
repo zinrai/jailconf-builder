@@ -12,9 +12,16 @@ This is a CLI tool for creating jail environments using jail.conf(5). For jail o
 
 - Initialize `jailconf-builder` environment
 - Create new jails with VNET support
-- List existing jails
 - Delete jails with safety checks
 - Download FreeBSD base system for jails
+
+## Directory Structure
+
+```
+/etc/jail.conf.d/                # Jail configuration files (FreeBSD standard)
+/var/jails/                      # Jail root directories
+/var/db/jailconf-builder/base/   # FreeBSD base systems
+```
 
 ## Installation
 
@@ -78,42 +85,11 @@ Before using `jailconf-builder` , you need to initialize the environment:
 $ sudo jailconf-builder init
 ```
 
-This command creates the necessary directories and the main jail.conf file.
-
-### Create a Jail
-
-To create a new jail:
-
-```
-$ sudo jailconf-builder create <jail_name> -v <FreeBSD_version> -i <IP_address> -g <gateway>
-```
-
-Example:
-```
-$ sudo jailconf-builder create myjail -v 14.1-RELEASE -i 192.168.2.100 -g 192.168.2.1
-```
-
-### List Jails
-
-To list all existing jails:
-
-```
-$ jailconf-builder list
-```
-
-### Delete a Jail
-
-To delete a jail:
-
-```
-$ sudo jailconf-builder delete <jail_name>
-```
-
-This will prompt for confirmation. To skip the confirmation, use the `-f` flag:
-
-```
-$ sudo jailconf-builder delete -f <jail_name>
-```
+This command:
+- Confirms `/etc/jail.conf.d` directory exists
+- Adds include directive to `/etc/jail.conf`
+- Creates `/var/jails` directory
+- Creates `/var/db/jailconf-builder/base` directory
 
 ### Download FreeBSD Base System
 
@@ -125,7 +101,41 @@ $ sudo jailconf-builder dl-base -s <URL_to_base.txz>
 
 Example:
 ```
-$ sudo jailconf-builder dl-base -s https://download.freebsd.org/ftp/releases/amd64/14.1-RELEASE/base.txz
+$ sudo jailconf-builder dl-base -s https://download.freebsd.org/releases/amd64/14.3-RELEASE/base.txz
+```
+
+### Create a Jail
+
+To create a new jail:
+
+```
+$ sudo jailconf-builder create -name <jail_name> -version <FreeBSD_version>
+```
+
+Example:
+```
+$ sudo jailconf-builder create -name myjail -version 14.3-RELEASE
+```
+
+IP address and epair number are automatically assigned.
+
+To list existing jails, use:
+```
+$ ls /etc/jail.conf.d/
+```
+
+### Delete a Jail
+
+To delete a jail:
+
+```
+$ sudo jailconf-builder delete -name <jail_name>
+```
+
+This will prompt for confirmation. To skip the confirmation, use the `-f` flag:
+
+```
+$ sudo jailconf-builder delete -name <jail_name> -f
 ```
 
 ## License
