@@ -76,105 +76,188 @@ func ensureInclude() error {
 }
 
 // runCreate executes the create subcommand
-func runCreate(name, version string) error {
-	// 1. Check if base.txz exists
-	basePath := filepath.Join(BaseDir, version, "base.txz")
-	if _, err := os.Stat(basePath); os.IsNotExist(err) {
-		return fmt.Errorf("base.txz for version %s not found at %s\nPlease run 'jailconf-builder dl-base' first", version, basePath)
-	}
-
-	// 2. Check if jail already exists
-	if jailExists(name) {
-		return fmt.Errorf("jail '%s' already exists", name)
-	}
-
-	// 3. Get next available number
-	num, err := getNextAvailableNumber()
+func runCreate(templatePath, configPath, targetName string) error {
+	// 1. Load template
+	tmpl, err := LoadTemplate(templatePath)
 	if err != nil {
-		return fmt.Errorf("failed to get next available number: %w", err)
+		return err
 	}
 
-	// 4. Create Jail instance
-	jail := NewJail(name, num)
-
-	// 5. Create jail root directory
-	if err := os.MkdirAll(jail.RootPath(), 0755); err != nil {
-		return fmt.Errorf("failed to create jail directory: %w", err)
+	// 2. Load config
+	config, err := LoadConfig(configPath)
+	if err != nil {
+		return err
 	}
 
-	// 6. Extract base.txz
-	fmt.Printf("Extracting base system to %s...\n", jail.RootPath())
-	cmd := exec.Command("tar", "-xf", basePath, "-C", jail.RootPath())
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		// Clean up on failure
-		os.RemoveAll(jail.RootPath())
-		return fmt.Errorf("failed to extract base system: %w", err)
+	// 3. Filter jails if name specified
+	jails := FilterJails(config.Jails, targetName)
+	if jails == nil {
+		return fmt.Errorf("jail '%s' not found in config", targetName)
 	}
 
-	// 7. Generate jail.conf
-	if err := jail.WriteConf(); err != nil {
-		// Clean up on failure
-		os.RemoveAll(jail.RootPath())
-		return fmt.Errorf("failed to write jail.conf: %w", err)
-	}
+	// 4. Process each jail
+	for _, jail := range jails {
+		if err := ValidateJail(jail); err != nil {
+			return err
+		}
 
-	fmt.Printf("Jail '%s' created successfully.\n", name)
-	fmt.Printf("  Config: %s\n", jail.ConfPath())
-	fmt.Printf("  Root:   %s\n", jail.RootPath())
-	fmt.Printf("  IP:     %s\n", jail.IPAddr)
-	fmt.Printf("\nTo start the jail:\n")
-	fmt.Printf("  sudo jail -c %s\n", name)
-	fmt.Printf("  # or\n")
-	fmt.Printf("  sudo service jail start %s\n", name)
+		name, _ := GetJailName(jail)
+		number, _ := GetJailNumber(jail)
+		version, _ := GetJailVersion(jail)
+
+		// Check if base.txz exists
+		basePath := filepath.Join(BaseDir, version, "base.txz")
+		if _, err := os.Stat(basePath); os.IsNotExist(err) {
+			return fmt.Errorf("base.txz for version %s not found at %s\nPlease run 'jailconf-builder dl-base' first", version, basePath)
+		}
+
+		confPath := fmt.Sprintf("%s/%d-%s.conf", JailConfDir, number, name)
+
+		// Check if jail config already exists
+		if _, err := os.Stat(confPath); err == nil {
+			// Config exists, compare with template
+			match, err := CompareJailConf(tmpl, jail, confPath)
+			if err != nil {
+				return fmt.Errorf("failed to compare config for jail '%s': %w", name, err)
+			}
+			if !match {
+				return fmt.Errorf("jail '%s' config exists but differs from template", name)
+			}
+			fmt.Printf("Jail '%s' config already exists and matches template, skipping.\n", name)
+			continue
+		}
+
+		// Check if jail directory already exists
+		jailPath := filepath.Join(JailRootDir, name)
+		if _, err := os.Stat(jailPath); err == nil {
+			return fmt.Errorf("jail directory '%s' already exists", jailPath)
+		}
+
+		// Create jail root directory
+		if err := os.MkdirAll(jailPath, 0755); err != nil {
+			return fmt.Errorf("failed to create jail directory: %w", err)
+		}
+
+		// Extract base.txz
+		fmt.Printf("Extracting base system to %s...\n", jailPath)
+		cmd := exec.Command("tar", "-xf", basePath, "-C", jailPath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			os.RemoveAll(jailPath)
+			return fmt.Errorf("failed to extract base system: %w", err)
+		}
+
+		// Generate jail.conf from template
+		rendered, err := RenderTemplate(tmpl, jail)
+		if err != nil {
+			os.RemoveAll(jailPath)
+			return err
+		}
+
+		if err := os.WriteFile(confPath, rendered, 0644); err != nil {
+			os.RemoveAll(jailPath)
+			return fmt.Errorf("failed to write jail.conf: %w", err)
+		}
+
+		fmt.Printf("Jail '%s' created successfully.\n", name)
+		fmt.Printf("  Config: %s\n", confPath)
+		fmt.Printf("  Root:   %s\n", jailPath)
+	}
 
 	return nil
 }
 
 // runDelete executes the delete subcommand
-func runDelete(name string, force bool) error {
-	// 1. Find config file
-	confPath, err := findJailConf(name)
+func runDelete(templatePath, configPath, targetName string, force bool) error {
+	// 1. Load template
+	tmpl, err := LoadTemplate(templatePath)
 	if err != nil {
-		return fmt.Errorf("jail '%s' not found", name)
+		return err
 	}
 
-	jailPath := filepath.Join(JailRootDir, name)
+	// 2. Load config
+	config, err := LoadConfig(configPath)
+	if err != nil {
+		return err
+	}
 
-	// 2. Confirmation prompt
+	// 3. Filter jails if name specified
+	jails := FilterJails(config.Jails, targetName)
+	if jails == nil {
+		return fmt.Errorf("jail '%s' not found in config", targetName)
+	}
+
+	// 4. Validate all jails and compare with template before deletion
+	for _, jail := range jails {
+		if err := ValidateJail(jail); err != nil {
+			return err
+		}
+
+		name, _ := GetJailName(jail)
+		number, _ := GetJailNumber(jail)
+
+		confPath := fmt.Sprintf("%s/%d-%s.conf", JailConfDir, number, name)
+
+		// Check if config exists
+		if _, err := os.Stat(confPath); os.IsNotExist(err) {
+			return fmt.Errorf("jail '%s' config not found at %s", name, confPath)
+		}
+
+		// Compare with template
+		match, err := CompareJailConf(tmpl, jail, confPath)
+		if err != nil {
+			return fmt.Errorf("failed to compare config for jail '%s': %w", name, err)
+		}
+		if !match {
+			return fmt.Errorf("jail '%s' config differs from template, refusing to delete", name)
+		}
+	}
+
+	// 5. Confirmation prompt
 	if !force {
-		fmt.Printf("Are you sure you want to delete jail '%s'? This action cannot be undone. [y/N]: ", name)
+		if targetName == "" {
+			fmt.Printf("Are you sure you want to delete %d jails? [y/N]: ", len(jails))
+		} else {
+			fmt.Printf("Are you sure you want to delete jail '%s'? [y/N]: ", targetName)
+		}
 		reader := bufio.NewReader(os.Stdin)
 		response, _ := reader.ReadString('\n')
 		response = strings.ToLower(strings.TrimSpace(response))
 		if response != "y" && response != "yes" {
-			fmt.Println("Jail deletion cancelled.")
+			fmt.Println("Deletion cancelled.")
 			return nil
 		}
 	}
 
-	// 3. Delete config file
-	if err := os.Remove(confPath); err != nil {
-		return fmt.Errorf("failed to delete config file: %w", err)
-	}
-	fmt.Printf("Deleted: %s\n", confPath)
+	// 6. Delete each jail
+	for _, jail := range jails {
+		name, _ := GetJailName(jail)
+		number, _ := GetJailNumber(jail)
 
-	// 4. Delete jail directory
-	if _, err := os.Stat(jailPath); err == nil {
-		// Remove schg flags to allow deletion
-		chflagsCmd := exec.Command("chflags", "-R", "noschg,nouchg", jailPath)
-		if err := chflagsCmd.Run(); err != nil {
-			fmt.Printf("Warning: failed to remove flags: %v\n", err)
+		confPath := fmt.Sprintf("%s/%d-%s.conf", JailConfDir, number, name)
+		jailPath := filepath.Join(JailRootDir, name)
+
+		// Delete config file
+		if err := os.Remove(confPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete config file: %w", err)
+		}
+		fmt.Printf("Deleted: %s\n", confPath)
+
+		// Delete jail directory
+		if _, err := os.Stat(jailPath); err == nil {
+			chflagsCmd := exec.Command("chflags", "-R", "noschg,nouchg", jailPath)
+			chflagsCmd.Run()
+
+			if err := os.RemoveAll(jailPath); err != nil {
+				return fmt.Errorf("failed to delete jail directory: %w", err)
+			}
+			fmt.Printf("Deleted: %s\n", jailPath)
 		}
 
-		if err := os.RemoveAll(jailPath); err != nil {
-			return fmt.Errorf("failed to delete jail directory: %w", err)
-		}
-		fmt.Printf("Deleted: %s\n", jailPath)
+		fmt.Printf("Jail '%s' deleted successfully.\n", name)
 	}
 
-	fmt.Printf("Jail '%s' has been successfully deleted.\n", name)
 	return nil
 }
 

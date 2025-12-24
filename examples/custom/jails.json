@@ -1,0 +1,37 @@
+{
+  "jails": [
+    {
+      "name": "web",
+      "number": 1,
+      "version": "14.3-RELEASE",
+      "hostname": "webserver.example.com",
+      "ip_addr": "192.168.2.11",
+      "gateway": "192.168.2.1",
+      "devfs_ruleset": 5,
+      "allow_raw_sockets": false,
+      "allow_sysvipc": false
+    },
+    {
+      "name": "db",
+      "number": 2,
+      "version": "14.3-RELEASE",
+      "hostname": "dbserver.example.com",
+      "ip_addr": "192.168.2.12",
+      "gateway": "192.168.2.1",
+      "devfs_ruleset": 10,
+      "allow_raw_sockets": false,
+      "allow_sysvipc": true
+    },
+    {
+      "name": "monitoring",
+      "number": 3,
+      "version": "14.3-RELEASE",
+      "hostname": "monitoring.example.com",
+      "ip_addr": "192.168.2.13",
+      "gateway": "192.168.2.1",
+      "devfs_ruleset": 5,
+      "allow_raw_sockets": true,
+      "allow_sysvipc": false
+    }
+  ]
+}

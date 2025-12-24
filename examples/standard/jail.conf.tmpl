@@ -1,0 +1,23 @@
+{{.name}} {
+    host.hostname = "{{.name}}.jail";
+    path = "/var/jails/{{.name}}";
+
+    vnet;
+    vnet.interface = "epair{{.number}}b";
+
+    $ip4_addr = "{{.ip_addr}}";
+    $gw = "{{.gateway}}";
+
+    exec.prestart  = "ifconfig epair{{.number}} create up";
+    exec.prestart += "ifconfig bridge0 addm epair{{.number}}a";
+    exec.start     = "ifconfig lo0 up 127.0.0.1";
+    exec.start    += "ifconfig epair{{.number}}b up $ip4_addr";
+    exec.start    += "route add default $gw";
+    exec.start    += "sh /etc/rc";
+    exec.stop      = "sh /etc/rc.shutdown";
+    exec.poststop  = "ifconfig epair{{.number}}a destroy";
+
+    mount.devfs;
+    devfs_ruleset = 5;
+    persist;
+}

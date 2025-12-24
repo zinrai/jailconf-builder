@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -23,57 +23,55 @@ func main() {
 
 	case "create":
 		createCmd := flag.NewFlagSet("create", flag.ExitOnError)
-		nameFlag := createCmd.String("name", "", "Jail name (required)")
-		versionFlag := createCmd.String("version", "", "FreeBSD version (required, e.g., 14.1-RELEASE)")
+		templateFlag := createCmd.String("template", "", "Path to jail.conf template (required)")
+		configFlag := createCmd.String("config", "", "Path to jails.json (required)")
+		nameFlag := createCmd.String("name", "", "Jail name (optional, creates only specified jail)")
 
 		createCmd.Usage = func() {
-			fmt.Fprintf(os.Stderr, "Usage: jailconf-builder create -name <jail_name> -version <freebsd_version>\n\n")
+			fmt.Fprintf(os.Stderr, "Usage: jailconf-builder create -template <template_file> -config <config_file> [-name <jail_name>]\n\n")
 			fmt.Fprintf(os.Stderr, "Options:\n")
 			createCmd.PrintDefaults()
-			fmt.Fprintf(os.Stderr, "\nExample:\n")
-			fmt.Fprintf(os.Stderr, "  jailconf-builder create -name myjail -version 14.1-RELEASE\n")
 		}
 
 		if err := createCmd.Parse(os.Args[2:]); err != nil {
 			os.Exit(1)
 		}
 
-		if *nameFlag == "" || *versionFlag == "" {
-			fmt.Fprintf(os.Stderr, "Error: -name and -version are required\n\n")
+		if *templateFlag == "" || *configFlag == "" {
+			fmt.Fprintf(os.Stderr, "Error: -template and -config are required\n\n")
 			createCmd.Usage()
 			os.Exit(1)
 		}
 
-		if err := runCreate(*nameFlag, *versionFlag); err != nil {
+		if err := runCreate(*templateFlag, *configFlag, *nameFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 
 	case "delete":
 		deleteCmd := flag.NewFlagSet("delete", flag.ExitOnError)
-		nameFlag := deleteCmd.String("name", "", "Jail name to delete (required)")
+		templateFlag := deleteCmd.String("template", "", "Path to jail.conf template (required)")
+		configFlag := deleteCmd.String("config", "", "Path to jails.json (required)")
+		nameFlag := deleteCmd.String("name", "", "Jail name (optional, deletes only specified jail)")
 		forceFlag := deleteCmd.Bool("f", false, "Force delete without confirmation")
 
 		deleteCmd.Usage = func() {
-			fmt.Fprintf(os.Stderr, "Usage: jailconf-builder delete -name <jail_name> [-f]\n\n")
+			fmt.Fprintf(os.Stderr, "Usage: jailconf-builder delete -template <template_file> -config <config_file> [-name <jail_name>] [-f]\n\n")
 			fmt.Fprintf(os.Stderr, "Options:\n")
 			deleteCmd.PrintDefaults()
-			fmt.Fprintf(os.Stderr, "\nExample:\n")
-			fmt.Fprintf(os.Stderr, "  jailconf-builder delete -name myjail\n")
-			fmt.Fprintf(os.Stderr, "  jailconf-builder delete -name myjail -f\n")
 		}
 
 		if err := deleteCmd.Parse(os.Args[2:]); err != nil {
 			os.Exit(1)
 		}
 
-		if *nameFlag == "" {
-			fmt.Fprintf(os.Stderr, "Error: -name is required\n\n")
+		if *templateFlag == "" || *configFlag == "" {
+			fmt.Fprintf(os.Stderr, "Error: -template and -config are required\n\n")
 			deleteCmd.Usage()
 			os.Exit(1)
 		}
 
-		if err := runDelete(*nameFlag, *forceFlag); err != nil {
+		if err := runDelete(*templateFlag, *configFlag, *nameFlag, *forceFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -86,8 +84,6 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Usage: jailconf-builder dl-base -s <url>\n\n")
 			fmt.Fprintf(os.Stderr, "Options:\n")
 			dlBaseCmd.PrintDefaults()
-			fmt.Fprintf(os.Stderr, "\nExample:\n")
-			fmt.Fprintf(os.Stderr, "  jailconf-builder dl-base -s https://download.freebsd.org/ftp/releases/amd64/14.1-RELEASE/base.txz\n")
 		}
 
 		if err := dlBaseCmd.Parse(os.Args[2:]); err != nil {
@@ -126,8 +122,8 @@ Usage:
 
 Commands:
   init        Initialize jailconf-builder environment
-  create      Create a new jail
-  delete      Delete an existing jail
+  create      Create jails from template and config
+  delete      Delete jails specified in config
   dl-base     Download FreeBSD base system
 
 Options:
