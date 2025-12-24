@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -17,6 +17,33 @@ func main() {
 	switch os.Args[1] {
 	case "init":
 		if err := runInit(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+	case "preview":
+		previewCmd := flag.NewFlagSet("preview", flag.ExitOnError)
+		templateFlag := previewCmd.String("template", "", "Path to jail.conf template (required)")
+		configFlag := previewCmd.String("config", "", "Path to jails.json (required)")
+		nameFlag := previewCmd.String("name", "", "Jail name (optional, shows only specified jail)")
+
+		previewCmd.Usage = func() {
+			fmt.Fprintf(os.Stderr, "Usage: jailconf-builder preview -template <template_file> -config <config_file> [-name <jail_name>]\n\n")
+			fmt.Fprintf(os.Stderr, "Options:\n")
+			previewCmd.PrintDefaults()
+		}
+
+		if err := previewCmd.Parse(os.Args[2:]); err != nil {
+			os.Exit(1)
+		}
+
+		if *templateFlag == "" || *configFlag == "" {
+			fmt.Fprintf(os.Stderr, "Error: -template and -config are required\n\n")
+			previewCmd.Usage()
+			os.Exit(1)
+		}
+
+		if err := runPreview(*templateFlag, *configFlag, *nameFlag); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -122,6 +149,7 @@ Usage:
 
 Commands:
   init        Initialize jailconf-builder environment
+  preview     Preview generated jail.conf without creating
   create      Create jails from template and config
   delete      Delete jails specified in config
   dl-base     Download FreeBSD base system

@@ -11,6 +11,7 @@ This is a CLI tool for creating jail environments using jail.conf(5). For jail o
 ## Features
 
 - Initialize `jailconf-builder` environment
+- Preview generated jail.conf before creating
 - Create jails with VNET support using Go Template and JSON configuration
 - Delete jails with template matching safety checks
 - Download FreeBSD base system for jails
@@ -46,7 +47,7 @@ Create and configure the bridge interface:
 Enable PF (Packet Filter):
 
 ```sh
-# cat << EOF >> /etc/rc.conf
+# cat << EOF >> /etc/rc.conf.d/pf
 pf_enable="YES"
 pf_flags=""
 EOF
@@ -168,6 +169,24 @@ $ sudo jailconf-builder dl-base -s <URL_to_base.txz>
 Example:
 ```
 $ sudo jailconf-builder dl-base -s https://download.freebsd.org/releases/amd64/14.3-RELEASE/base.txz
+```
+
+### Preview Jails
+
+To preview generated jail.conf without creating jails:
+
+```
+$ jailconf-builder preview -template <template_file> -config <config_file> [-name <jail_name>]
+```
+
+Preview all jails defined in config:
+```
+$ jailconf-builder preview -template examples/standard/jail.conf.tmpl -config examples/standard/jails.json
+```
+
+Preview a specific jail:
+```
+$ jailconf-builder preview -template examples/standard/jail.conf.tmpl -config examples/standard/jails.json -name myjail
 ```
 
 ### Create Jails

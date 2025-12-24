@@ -11,6 +11,54 @@ import (
 	"strings"
 )
 
+// runPreview executes the preview subcommand
+func runPreview(templatePath, configPath, targetName string) error {
+	// 1. Load template
+	tmpl, err := LoadTemplate(templatePath)
+	if err != nil {
+		return err
+	}
+
+	// 2. Load config
+	config, err := LoadConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	// 3. Filter jails if name specified
+	jails := FilterJails(config.Jails, targetName)
+	if jails == nil {
+		return fmt.Errorf("jail '%s' not found in config", targetName)
+	}
+
+	// 4. Render and output each jail
+	for i, jail := range jails {
+		if err := ValidateJail(jail); err != nil {
+			return err
+		}
+
+		name, _ := GetJailName(jail)
+		number, _ := GetJailNumber(jail)
+
+		// Render template
+		rendered, err := RenderTemplate(tmpl, jail)
+		if err != nil {
+			return err
+		}
+
+		// Print header
+		fmt.Printf("# %d-%s.conf\n", number, name)
+		fmt.Print(string(rendered))
+
+		// Print separator between jails
+		if i < len(jails)-1 {
+			fmt.Println()
+		}
+	}
+
+	return nil
+}
+
 // runInit executes the init subcommand
 func runInit() error {
 	// 1. Check if /etc/jail.conf.d exists
