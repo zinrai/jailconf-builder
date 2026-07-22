@@ -6,8 +6,6 @@ import (
 	"os"
 )
 
-const version = "0.4.0"
-
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -129,7 +127,7 @@ func main() {
 		}
 
 	case "version", "-v", "--version":
-		fmt.Printf("jailconf-builder %s\n", version)
+		printVersion()
 
 	case "help", "-h", "--help":
 		printUsage()
