@@ -24,14 +24,6 @@ This is a CLI tool for creating jail environments using jail.conf(5). For jail o
 /var/db/jailconf-builder/base/   # FreeBSD base systems
 ```
 
-## Installation
-
-Build the tool:
-
-```
-$ GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o jailconf-builder
-```
-
 ## Network Setup
 
 Before using `jailconf-builder` , you need to set up the network environment. Run the following commands as root:
